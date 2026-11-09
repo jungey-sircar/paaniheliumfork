@@ -1,0 +1,53 @@
+# Copyright 2026 The Paani Authors
+# Use of this source code is governed by a GPL-3.0 license that can be
+# found in the LICENSE file.
+
+import("//build/rust/rust_static_library.gni")
+
+rust_static_library("paani_adblock_rust") {
+  crate_name = "paani_adblock_rust"
+  crate_root = "rust/lib.rs"
+  sources = [ crate_root ]
+
+  edition = "2024"
+  allow_unsafe = true
+
+  deps = [ "//third_party/rust/adblock/v0_13:lib" ]
+}
+
+source_set("paani_adblock") {
+  sources = [
+    "paani_adblock_engine.cc",
+    "paani_adblock_engine.h",
+    "paani_adblock_rust.h",
+    "paani_adblock_service.cc",
+    "paani_adblock_service.h",
+    "paani_adblock_tab_data.cc",
+    "paani_adblock_tab_data.h",
+    "paani_adblock_url_loader_factory.cc",
+    "paani_adblock_url_loader_factory.h",
+    "paani_redirect_resources.cc",
+    "paani_redirect_resources.h",
+    "paani_stub_url_loader.cc",
+    "paani_stub_url_loader.h",
+  ]
+
+  deps = [
+    ":paani_adblock_rust",
+    "//base",
+    "//chrome/browser/profiles:profile",
+    "//components/keyed_service/core",
+    "//components/pref_registry",
+    "//components/prefs",
+    "//content/public/browser",
+    "//mojo/public/cpp/bindings",
+    "//mojo/public/cpp/system",
+    "//net",
+    "//net/base:registry_controlled_domains",
+    "//services/network/public/cpp",
+    "//services/network/public/mojom",
+    "//third_party/ublock:ublock",
+    "//ui/base",
+    "//url",
+  ]
+}

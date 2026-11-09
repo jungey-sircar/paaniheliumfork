@@ -1,0 +1,48 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>paani tracker test</title></head>
+<body>
+<div id="result">pending</div>
+<script>
+  // Third-party requests that EasyList / EasyPrivacy match. They are chosen so
+  // that the outcome does not depend on a $redirect= resource: a plain script,
+  // image beacon and XHR each have to fail with net::ERR_BLOCKED_BY_CLIENT for
+  // the blocker to be credited.
+  var cb = new URLSearchParams(location.search).get('cb') || '0';
+  var urls = [
+    'https://www.google-analytics.com/g/collect?v=2&tid=G-XXXXXXXXXX&_et=1&t=pageview&cid=1&sr=1x1&ul=en&cb=',
+    'https://stats.g.doubleclick.net/g/collect?t=dc&aip=1&cb=',
+    'https://www.googletagmanager.com/gtm.js?id=GTM-XXXX&cb=',
+    'https://ad.doubleclick.net/ddm/adj/1234;kw=test;sz=1x1;ord=?',
+    'https://tpc.googlesyndication.com/sodar/sodar2.js?cb=',
+    'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?cb=',
+    'https://ade.googlesyndication.com/b4s/animator/os/m.js?cb=',
+    'https://c.amazon-adsystem.com/bao-csm/px/a?po=1&cb='
+  ];
+  var seen = {};
+  urls.forEach(function (u, i) {
+    u = u + cb;
+    seen[u] = 'pending';
+    var el;
+    if (i % 3 === 0) { el = document.createElement('img'); }
+    else if (i % 3 === 1) { el = document.createElement('script'); }
+    else {
+      var x = new XMLHttpRequest();
+      x.open('GET', u);
+      x.onload = function () { seen[u] = 'xhr-loaded'; tick(); };
+      x.onerror = function () { seen[u] = 'xhr-error'; tick(); };
+      x.send();
+      return;
+    }
+    el.onload = function () { seen[u] = 'loaded'; tick(); };
+    el.onerror = function () { seen[u] = 'error'; tick(); };
+    if (el.tagName === 'IMG') el.src = u; else el.src = u;
+    document.head.appendChild(el);
+  });
+  var pending = urls.length;
+  function tick() { if (--pending <= 0) finish(); }
+  function finish() {
+    document.getElementById('result').textContent = JSON.stringify(seen);
+  }
+  setTimeout(finish, 12000);
+</script>
+</body></html>

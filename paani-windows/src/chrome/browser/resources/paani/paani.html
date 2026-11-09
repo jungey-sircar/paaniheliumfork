@@ -1,0 +1,30 @@
+<!doctype html>
+<html id="t" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Paani</title>
+    <link rel="stylesheet" href="chrome://resources/css/text_defaults.css">
+    <style>
+      /* The component paints the water palette inside its shadow root, but the
+       * document itself still has the user-agent margins and background, which
+       * would show as a gutter around the page. */
+      html,
+      body {
+        margin: 0;
+        background: #f1f8fb;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        html,
+        body {
+          background: #121a1e;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <script type="module" src="app.js"></script>
+    <paani-app></paani-app>
+  </body>
+</html>

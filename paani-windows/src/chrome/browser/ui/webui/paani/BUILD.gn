@@ -1,0 +1,35 @@
+# Copyright 2026 The Paani Browser Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+import("//mojo/public/tools/bindings/mojom.gni")
+
+mojom("mojo_bindings") {
+  sources = [ "paani.mojom" ]
+
+  webui_module_path = "/"
+}
+
+source_set("paani") {
+  sources = [
+    "paani_handler.cc",
+    "paani_ui.cc",
+  ]
+  public = [
+    "paani_handler.h",
+    "paani_ui.h",
+  ]
+  public_deps = [ "//chrome/browser:browser_public_dependencies" ]
+  deps = [
+    ":mojo_bindings",
+    "//base",
+    "//chrome/browser/paani/adblock:paani_adblock",
+    "//chrome/browser/profiles:profile",
+    "//chrome/browser/resources/paani:resources",
+    "//chrome/common",
+    "//content/public/browser",
+    "//mojo/public/cpp/bindings",
+    "//ui/webui",
+    "//url",
+  ]
+}

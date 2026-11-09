@@ -1,0 +1,255 @@
+Renames the internal WebUI scheme from helium:// to paani://.
+--- a/content/public/common/url_constants.h
++++ b/content/public/common/url_constants.h
+@@ -19,7 +19,7 @@
+ inline constexpr char kChromeDevToolsScheme[] = "devtools";
+ inline constexpr char kChromeErrorScheme[] = "chrome-error";
+ inline constexpr char kChromeUIScheme[] = "chrome";  // Used for WebUIs.
+-inline constexpr char kHeliumUIScheme[] = "helium";  // also used for webuis :3
++inline constexpr char kPaaniUIScheme[] = "paani";  // also used for webuis :3
+ inline constexpr char kChromeNativeScheme[] = "chrome-native";
+ inline constexpr char kChromeUIUntrustedScheme[] = "chrome-untrusted";
+ inline constexpr char kViewSourceScheme[] = "view-source";
+--- a/chrome/browser/profiles/profile_io_data.cc
++++ b/chrome/browser/profiles/profile_io_data.cc
+@@ -44,7 +44,7 @@
+       extensions::kExtensionScheme,
+ #endif
+       content::kChromeUIScheme,
+-      content::kHeliumUIScheme,
++      content::kPaaniUIScheme,
+       content::kChromeUIUntrustedScheme,
+       url::kDataScheme,
+ #if BUILDFLAG(IS_CHROMEOS)
+--- a/content/common/url_schemes.cc
++++ b/content/common/url_schemes.cc
+@@ -30,7 +30,7 @@
+   url::kFileSystemScheme,
+   kChromeDevToolsScheme,
+   kChromeUIScheme,
+-  kHeliumUIScheme,
++  kPaaniUIScheme,
+   url::kDataScheme
+ };
+ 
+@@ -61,7 +61,7 @@
+ 
+   url::AddStandardScheme(kChromeDevToolsScheme, url::SCHEME_WITH_HOST);
+   url::AddStandardScheme(kChromeUIScheme, url::SCHEME_WITH_HOST);
+-  url::AddStandardScheme(kHeliumUIScheme, url::SCHEME_WITH_HOST);
++  url::AddStandardScheme(kPaaniUIScheme, url::SCHEME_WITH_HOST);
+   url::AddStandardScheme(kChromeUIUntrustedScheme, url::SCHEME_WITH_HOST);
+   url::AddStandardScheme(kChromeErrorScheme, url::SCHEME_WITH_HOST);
+   for (auto& scheme : schemes.standard_schemes)
+@@ -72,7 +72,7 @@
+ 
+   schemes.secure_schemes.push_back(kChromeDevToolsScheme);
+   schemes.secure_schemes.push_back(kChromeUIScheme);
+-  schemes.secure_schemes.push_back(kHeliumUIScheme);
++  schemes.secure_schemes.push_back(kPaaniUIScheme);
+   schemes.secure_schemes.push_back(kChromeUIUntrustedScheme);
+   schemes.secure_schemes.push_back(kChromeErrorScheme);
+   for (auto& scheme : schemes.secure_schemes)
+@@ -93,7 +93,7 @@
+     url::AddNoAccessScheme(scheme.c_str());
+ 
+   schemes.cors_enabled_schemes.push_back(kChromeUIScheme);
+-  schemes.cors_enabled_schemes.push_back(kHeliumUIScheme);
++  schemes.cors_enabled_schemes.push_back(kPaaniUIScheme);
+   schemes.cors_enabled_schemes.push_back(kChromeUIUntrustedScheme);
+   for (auto& scheme : schemes.cors_enabled_schemes)
+     url::AddCorsEnabledScheme(scheme.c_str());
+@@ -122,7 +122,7 @@
+   // service workers don't work for chrome[-untrusted]:// when the flag is not
+   // enabled.
+   schemes.service_worker_schemes.push_back(kChromeUIScheme);
+-  schemes.service_worker_schemes.push_back(kHeliumUIScheme);
++  schemes.service_worker_schemes.push_back(kPaaniUIScheme);
+   schemes.service_worker_schemes.push_back(kChromeUIUntrustedScheme);
+ 
+   // Prevent future modification of the scheme lists. This is to prevent
+--- a/content/renderer/render_thread_impl.cc
++++ b/content/renderer/render_thread_impl.cc
+@@ -889,12 +889,12 @@
+       chrome_scheme);
+   WebSecurityPolicy::RegisterURLSchemeAsWebUI(chrome_scheme);
+ 
+-  // helium:
+-  WebString helium_scheme(WebString::FromAscii(kHeliumUIScheme));
+-  WebSecurityPolicy::RegisterURLSchemeAsDisplayIsolated(helium_scheme);
++  // paani:
++  WebString paani_scheme(WebString::FromAscii(kPaaniUIScheme));
++  WebSecurityPolicy::RegisterURLSchemeAsDisplayIsolated(paani_scheme);
+   WebSecurityPolicy::RegisterURLSchemeAsNotAllowingJavascriptURLs(
+-      helium_scheme);
+-  WebSecurityPolicy::RegisterURLSchemeAsWebUI(helium_scheme);
++      paani_scheme);
++  WebSecurityPolicy::RegisterURLSchemeAsWebUI(paani_scheme);
+ 
+   WebString chrome_untrusted_scheme(
+       WebString::FromAscii(kChromeUIUntrustedScheme));
+--- a/chrome/browser/history/history_utils.cc
++++ b/chrome/browser/history/history_utils.cc
+@@ -25,7 +25,7 @@
+       url.SchemeIs(url::kContentScheme) ||
+       url.SchemeIs(content::kChromeDevToolsScheme) ||
+       url.SchemeIs(content::kChromeUIScheme) ||
+-      url.SchemeIs(content::kHeliumUIScheme) ||
++      url.SchemeIs(content::kPaaniUIScheme) ||
+       url.SchemeIs(content::kChromeUIUntrustedScheme) ||
+       url.SchemeIs(content::kViewSourceScheme) ||
+       url.SchemeIs(url::kTraceScheme) ||
+--- a/chrome/browser/ui/incognito_allowed_url.cc
++++ b/chrome/browser/ui/incognito_allowed_url.cc
+@@ -24,7 +24,7 @@
+   std::string_view scheme = url.scheme();
+   std::string_view host = url.host();
+   if (scheme != content::kChromeUIScheme &&
+-      scheme != content::kHeliumUIScheme) {
++      scheme != content::kPaaniUIScheme) {
+     return true;
+   }
+ 
+--- a/chrome/browser/ui/navigator/browser_navigator.cc
++++ b/chrome/browser/ui/navigator/browser_navigator.cc
+@@ -726,7 +726,7 @@
+   }
+ #endif  // BUILDFLAG(IS_CHROMEOS)
+ 
+-  if (params->url.scheme() == content::kHeliumUIScheme) {
++  if (params->url.scheme() == content::kPaaniUIScheme) {
+     GURL::Replacements replacements;
+     replacements.SetSchemeStr(content::kChromeUIScheme);
+     params->url = params->url.ReplaceComponents(replacements);
+--- a/chrome/browser/extensions/extension_tab_util.cc
++++ b/chrome/browser/extensions/extension_tab_util.cc
+@@ -1101,7 +1101,7 @@
+   }
+ 
+   if (!url.SchemeIs(content::kChromeUIScheme)
+-      && !url.SchemeIs(content::kHeliumUIScheme)) {
++      && !url.SchemeIs(content::kPaaniUIScheme)) {
+     return false;
+   }
+ 
+--- a/chrome/browser/ui/browser_web_contents_delegate/browser_web_contents_delegate.cc
++++ b/chrome/browser/ui/browser_web_contents_delegate/browser_web_contents_delegate.cc
+@@ -799,7 +799,7 @@
+   GURL patched_url = url;
+   if (patched_url.SchemeIs(content::kChromeUIScheme)) {
+     GURL::Replacements replacements;
+-    replacements.SetSchemeStr(content::kHeliumUIScheme);
++    replacements.SetSchemeStr(content::kPaaniUIScheme);
+     patched_url = patched_url.ReplaceComponents(replacements);
+   }
+ 
+--- a/components/omnibox/browser/omnibox_text_util.cc
++++ b/components/omnibox/browser/omnibox_text_util.cc
+@@ -168,7 +168,7 @@
+ 
+     if (url_from_text->scheme() == content::kChromeUIScheme) {
+       GURL::Replacements replacements;
+-      replacements.SetSchemeStr(content::kHeliumUIScheme);
++      replacements.SetSchemeStr(content::kPaaniUIScheme);
+       *url_from_text = url_from_text->ReplaceComponents(replacements);
+     }
+ 
+--- a/components/url_formatter/url_formatter.cc
++++ b/components/url_formatter/url_formatter.cc
+@@ -629,7 +629,7 @@
+     if (url.SchemeIs(content::kChromeUIScheme)) {
+       GURL url_;
+       GURL::Replacements replacements;
+-      replacements.SetSchemeStr(content::kHeliumUIScheme);
++      replacements.SetSchemeStr(content::kPaaniUIScheme);
+       url_ = url.ReplaceComponents(replacements);
+ 
+       return FormatUrlWithAdjustments(url_, format_types, unescape_rules,
+--- a/components/url_formatter/url_fixer.cc
++++ b/components/url_formatter/url_fixer.cc
+@@ -39,7 +39,7 @@
+ 
+ // Hardcode these constants to avoid dependences on //chrome and //content.
+ const char kChromeUIScheme[] = "chrome";
+-const char kHeliumUIScheme[] = "helium";
++const char kPaaniUIScheme[] = "paani";
+ const char kDevToolsScheme[] = "devtools";
+ const char kChromeUIDefaultHost[] = "version";
+ const char kViewSourceScheme[] = "view-source";
+@@ -447,7 +447,7 @@
+       (*text)[semicolon] = ':';
+       if (GetValidScheme(*text, &parts->scheme, &scheme) &&
+           (url::IsStandard(scheme) || scheme == url::kAboutScheme ||
+-           scheme == kChromeUIScheme || scheme == kHeliumUIScheme ||
++           scheme == kChromeUIScheme || scheme == kPaaniUIScheme ||
+            scheme == url::kFileScheme)) {
+         found_scheme = true;
+       } else {
+@@ -464,7 +464,7 @@
+   // Proceed with about, chrome, and devtools schemes,
+   // but not file or nonstandard schemes.
+   if ((scheme != url::kAboutScheme) && (scheme != kChromeUIScheme) &&
+-      (scheme != kHeliumUIScheme) && (scheme != kDevToolsScheme) &&
++      (scheme != kPaaniUIScheme) && (scheme != kDevToolsScheme) &&
+       !url::IsStandard(scheme)) {
+     return scheme;
+   }
+@@ -624,7 +624,7 @@
+   bool chrome_url =
+       (scheme == url::kAboutScheme)
+       || (scheme == kChromeUIScheme)
+-      || (scheme == kHeliumUIScheme);
++      || (scheme == kPaaniUIScheme);
+   bool devtools_url = (scheme == kDevToolsScheme);
+   if (chrome_url || devtools_url || url::IsStandard(scheme)) {
+     // Replace the about: scheme with the chrome: scheme.
+@@ -754,10 +754,10 @@
+   return scheme1 == scheme2 ||
+          (scheme1 == url::kAboutScheme && scheme2 == kChromeUIScheme) ||
+          (scheme1 == kChromeUIScheme && scheme2 == url::kAboutScheme) ||
+-         (scheme1 == kHeliumUIScheme && scheme2 == url::kAboutScheme) ||
+-         (scheme1 == url::kAboutScheme && scheme2 == kHeliumUIScheme) ||
+-         (scheme1 == kHeliumUIScheme && scheme2 == kChromeUIScheme)   ||
+-         (scheme1 == kChromeUIScheme && scheme2 == kHeliumUIScheme);
++         (scheme1 == kPaaniUIScheme && scheme2 == url::kAboutScheme) ||
++         (scheme1 == url::kAboutScheme && scheme2 == kPaaniUIScheme) ||
++         (scheme1 == kPaaniUIScheme && scheme2 == kChromeUIScheme)   ||
++         (scheme1 == kChromeUIScheme && scheme2 == kPaaniUIScheme);
+ }
+ 
+ }  // namespace url_formatter
+--- a/chrome/browser/autocomplete/chrome_autocomplete_provider_client.cc
++++ b/chrome/browser/autocomplete/chrome_autocomplete_provider_client.cc
+@@ -429,7 +429,7 @@
+ std::string
+ ChromeAutocompleteProviderClient::GetEmbedderRepresentationOfAboutScheme()
+     const {
+-  return content::kHeliumUIScheme;
++  return content::kPaaniUIScheme;
+ }
+ 
+ std::vector<std::u16string> ChromeAutocompleteProviderClient::GetBuiltinURLs() {
+--- a/components/omnibox/browser/builtin_provider.cc
++++ b/components/omnibox/browser/builtin_provider.cc
+@@ -74,7 +74,7 @@
+     for (const std::u16string& url :
+          client_->GetBuiltinsToProvideAsUserTypes()) {
+       DCHECK(url.starts_with(u"chrome://"));
+-      AddBuiltinMatch(std::u16string(url).replace(0, 6, u"helium"),
++      AddBuiltinMatch(std::u16string(url).replace(0, 6, u"paani"),
+                       std::u16string(), styles);
+     }
+   } else {
+--- a/chrome/browser/resources/tab_search/tab_search_item.ts
++++ b/chrome/browser/resources/tab_search/tab_search_item.ts
+@@ -216,8 +216,8 @@
+ 
+     // Show chrome:// if it's a chrome internal url
+     const protocol = new URL(normalizeURL(data.tab.url)).protocol;
+-    if (protocol === 'chrome:' || protocol === 'helium:') {
+-      this.$.secondaryTextInner.prepend(document.createTextNode('helium://'));
++    if (protocol === 'chrome:' || protocol === 'paani:') {
++      this.$.secondaryTextInner.prepend(document.createTextNode('paani://'));
+     }
+   }
+ 

@@ -1,0 +1,58 @@
+// Copyright 2026 The Paani Browser Authors
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+// The module has to be namespaced, not the legacy bare `mojom`:
+// chrome_web_ui_configs.cc includes every WebUI header, and web_app_internals
+// still uses `module mojom`, so a second `mojom::PageHandlerFactory` here is a
+// redefinition error in that translation unit.
+module paani.mojom;
+
+// Factory ensures that the handler interface is created with the WebUI page
+// without requiring an initialization call from the WebUI to the handler.
+interface PageHandlerFactory {
+  // Creates the `handler` to be used for communication between the Browser and
+  // the Renderer.
+  CreatePaaniHandler(pending_receiver<PaaniHandler> handler);
+};
+
+// What the compiled filter engine actually contains. The page shows this so
+// that a blocker that silently failed to build is visible instead of looking
+// like a blocker that simply found nothing to do.
+struct PaaniEngineInfo {
+  // True when adblock-rust accepted the filter lists.
+  bool engine_ready;
+  // Number of compiled filter lists handed to the engine.
+  int32 lists_loaded;
+  // Total size of those lists in bytes.
+  int64 list_bytes;
+  // Filter rules counted from the list text, excluding comments.
+  int64 approx_rules;
+  // How many URL loader factories the blocker has wrapped so far. Zero means
+  // no request can be inspected at all.
+  int64 factories_installed;
+};
+
+// Handles requests from chrome://paani.
+// This is expected to be hosted in the browser process.
+interface PaaniHandler {
+  // Returns the current state of the built in ad blocker.
+  GetState() => (bool enabled,
+                 int64 blocked_count,
+                 array<string> allowed_sites,
+                 PaaniEngineInfo engine);
+
+  // Turns ad blocking on or off and returns the new state.
+  SetEnabled(bool enabled) => (bool enabled);
+
+  // Adds a site to the allow list and returns the new allow list. The site is
+  // stored as a registrable domain, so "www.example.com" and "example.com"
+  // are the same entry.
+  AllowSite(string site) => (array<string> allowed_sites);
+
+  // Removes a site from the allow list and returns the new allow list.
+  DisallowSite(string site) => (array<string> allowed_sites);
+
+  // Resets the blocked request counter and returns the new counter.
+  ResetCounter() => (int64 blocked_count);
+};

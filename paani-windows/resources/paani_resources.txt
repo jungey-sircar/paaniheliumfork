@@ -1,0 +1,60 @@
+# Paani branding resources.
+#
+# The destinations mirror helium-chromium/resources/helium_resources.txt, so
+# that the Paani assets land exactly where the Chromium theme looks for them.
+# This list is applied after the Helium one, so the Paani files win.
+
+paani/branding/product_logo.png components/resources/default_100_percent/chromium/product_logo.png
+paani/branding/product_logo_white.png components/resources/default_100_percent/chromium/product_logo_white.png
+paani/branding/product_logo_200.png components/resources/default_200_percent/chromium/product_logo.png
+paani/branding/product_logo_white_200.png components/resources/default_200_percent/chromium/product_logo_white.png
+
+# The favicon of the onboarding page.
+paani/branding/app_icon/favicon.png components/helium_onboarding/public/favicon.png
+
+paani/branding/product_logo_22_mono.png chrome/app/theme/chromium/product_logo_22_mono.png
+
+paani/branding/product_logo.svg chrome/app/theme/chromium/product_logo.svg
+
+paani/branding/product_logo.icon chrome/app/vector_icons/browser_logo.icon
+paani/branding/product_logo.icon chrome/app/vector_icons/browser_logo_old.icon
+paani/branding/product_logo.icon chrome/app/vector_icons/chrome_product.icon
+paani/branding/product_logo.icon components/omnibox/browser/vector_icons/chrome_product.icon
+paani/branding/product_logo.icon components/omnibox/browser/vector_icons/product_chrome_refresh.icon
+paani/branding/product_logo.icon components/omnibox/browser/vector_icons/product_chrome_refresh_old.icon
+paani/branding/product_logo.icon components/omnibox/browser/vector_icons/product_old.icon
+paani/branding/product_logo.icon components/vector_icons/chromium/product.icon
+paani/branding/product_logo_color.icon components/vector_icons/chromium/product_refresh.icon
+paani/branding/product_logo.icon ui/message_center/vector_icons/chrome_product.icon
+paani/branding/product_logo.icon ui/message_center/vector_icons/product_old.icon
+
+# generated resources
+generated/product_icon/16x16.png chrome/app/theme/chromium/product_logo_16.png
+generated/product_icon/24x24.png chrome/app/theme/chromium/product_logo_24.png
+generated/product_icon/48x48.png chrome/app/theme/chromium/product_logo_48.png
+generated/product_icon/64x64.png chrome/app/theme/chromium/product_logo_64.png
+generated/product_icon/128x128.png chrome/app/theme/chromium/product_logo_128.png
+generated/product_icon/256x256.png chrome/app/theme/chromium/product_logo_256.png
+
+generated/product_icon/16x16.png chrome/app/theme/default_100_percent/chromium/product_logo_16.png
+generated/product_icon/32x32.png chrome/app/theme/default_100_percent/chromium/product_logo_32.png
+
+generated/product_icon/32x32.png chrome/app/theme/default_200_percent/chromium/product_logo_16.png
+generated/product_icon/64x64.png chrome/app/theme/default_200_percent/chromium/product_logo_32.png
+
+generated/product_icon/24x24.png chrome/app/theme/chromium/linux/product_logo_24.png
+generated/product_icon/48x48.png chrome/app/theme/chromium/linux/product_logo_48.png
+generated/product_icon/64x64.png chrome/app/theme/chromium/linux/product_logo_64.png
+generated/product_icon/128x128.png chrome/app/theme/chromium/linux/product_logo_128.png
+generated/product_icon/256x256.png chrome/app/theme/chromium/linux/product_logo_256.png
+
+generated/product_icon/16x16.png chrome/app/theme/default_100_percent/chromium/linux/product_logo_16.png
+generated/product_icon/32x32.png chrome/app/theme/default_100_percent/chromium/linux/product_logo_32.png
+
+# The Windows executables carry the waterdrop as their icon.  Both chrome.exe
+# and chrome.dll embed IDR_MAINFRAME, and the browser loads the icon out of
+# the DLL, so both files have to carry the same artwork.
+generated/app.ico chrome/app/theme/chromium/win/chromium.ico
+generated/app.ico chrome/installer/setup/setup.ico
+generated/app.ico chrome/installer/mini_installer/mini_installer.ico
+generated/document.ico chrome/app/theme/chromium/win/chromium_doc.ico

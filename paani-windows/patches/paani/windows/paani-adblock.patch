@@ -1,0 +1,66 @@
+Adds the Paani built in ad blocker to the browser.
+
+The ad blocker is implemented on top of the Brave adblock-rust engine that is
+already vendored in the tree.  It hooks the document subresource URL loader
+factories, blocks the requests matched by the filter lists and keeps a
+per profile allowlist of sites where blocking is disabled.
+
+The vendored adblock crate is built without the "single-thread" feature so
+that the engine can be created on a background thread and used from the UI
+thread.
+
+--- a/third_party/rust/adblock/v0_13/BUILD.gn
++++ b/third_party/rust/adblock/v0_13/BUILD.gn
+@@ -90,10 +90,8 @@
+   ]
+   features = [
+     "addr",
+-    "default",
+     "embedded-domain-resolver",
+     "full-regex-handling",
+-    "single-thread",
+   ]
+ 
+   #####################################################################
+--- a/chrome/browser/BUILD.gn
++++ b/chrome/browser/BUILD.gn
+@@ -1014,6 +1014,7 @@
+     "//chrome/browser/omnibox",
+     "//chrome/browser/optimization_guide",
+     "//chrome/browser/page_info",
++    "//chrome/browser/paani/adblock:paani_adblock",
+     "//chrome/browser/password_manager",
+     "//chrome/browser/payments",
+     "//chrome/browser/performance_manager",
+--- a/chrome/browser/chrome_content_browser_client.cc
++++ b/chrome/browser/chrome_content_browser_client.cc
+@@ -134,6 +134,7 @@
+ #include "chrome/browser/net/system_network_context_manager.h"
+ #include "chrome/browser/optimization_guide/optimization_guide_keyed_service.h"
+ #include "chrome/browser/optimization_guide/optimization_guide_keyed_service_factory.h"
++#include "chrome/browser/paani/adblock/paani_adblock_url_loader_factory.h"
+ #include "chrome/browser/payments/payment_request_display_manager_factory.h"
+ #include "chrome/browser/performance_manager/public/chrome_browser_main_extra_parts_performance_manager.h"
+ #include "chrome/browser/performance_manager/public/chrome_content_browser_client_performance_manager_part.h"
+@@ -6808,6 +6809,21 @@
+     network::mojom::URLLoaderFactoryOverridePtr* factory_override,
+     scoped_refptr<base::SequencedTaskRunner> navigation_response_task_runner,
+     bool is_for_network_service) {
++  // Install the Paani built in ad blocker. It blocks the subresources of a
++  // document that the filter lists match.
++  //
++  // This is deliberately the first interceptor in the chain. Every factory
++  // appended later only ever sees the requests this one let through, and
++  // Helium's uBlock Origin component extension registers its webRequest proxy
++  // immediately below. Behind it, Paani is asked only about requests uBlock
++  // already allowed, which makes the blocked-request counter it shows the user
++  // meaningless even though the filter engine itself is loaded and working.
++  if (type == URLLoaderFactoryType::kDocumentSubResource ||
++      type == URLLoaderFactoryType::kWorkerSubResource) {
++    paani::PaaniAdblockURLLoaderFactory::MaybeProxyRequest(
++        browser_context, frame, factory_builder);
++  }
++
+ #if BUILDFLAG(ENABLE_EXTENSIONS_CORE)
+   auto* web_request_api =
+       extensions::BrowserContextKeyedAPIFactory<extensions::WebRequestAPI>::Get(

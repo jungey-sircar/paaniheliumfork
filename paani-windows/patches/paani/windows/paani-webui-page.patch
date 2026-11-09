@@ -1,0 +1,152 @@
+Adds the chrome://paani page and registers the ad blocker service.
+
+The page shows the number of requests the built in ad blocker stopped and lets
+the user allow a site.  It is a plain WebUI: a mojom handler on the browser
+side and a Lit element on the page side.
+
+PaaniAdblockServiceFactory is instantiated from
+EnsureBrowserContextKeyedServiceFactoriesBuilt() so that the factory is
+registered, and its preferences are registered, before a profile is created.
+
+grit gives every .grd its own block of resource ids, taken from the table in
+tools/gritsettings/resource_ids.spec; without a paani entry the resources_grit
+action fails with "Please update default_resource_ids and add a first id".
+
+paani::mojom::PageHandlerFactory is added to the WebUI interface binder
+registry.  A MojoWebUIController that is not listed there never receives the
+renderer's bind request, and the renderer is terminated for a bad message as
+soon as chrome://paani asks for the ad blocker state.
+--- a/chrome/common/webui_url_constants.h
++++ b/chrome/common/webui_url_constants.h
+@@ -261,6 +261,8 @@
+     "page-action-internals";
+ inline constexpr char kChromeUIPageActionInternalsURL[] =
+     "chrome://page-action-internals/";
++inline constexpr char kChromeUIPaaniHost[] = "paani";
++inline constexpr char kChromeUIPaaniURL[] = "chrome://paani/";
+ inline constexpr char kChromeUIPasswordManagerCheckupURL[] =
+     "chrome://password-manager/checkup?start=true";
+ inline constexpr char kChromeUIPasswordManagerInternalsHost[] =
+--- a/chrome/browser/ui/webui/chrome_web_ui_configs.cc
++++ b/chrome/browser/ui/webui/chrome_web_ui_configs.cc
+@@ -124,6 +124,7 @@
+ #include "chrome/browser/ui/webui/on_device_internals/on_device_internals_ui.h"
+ #include "chrome/browser/ui/webui/organizer_panel/organizer_panel_ui.h"
+ #include "chrome/browser/ui/webui/page_action_internals/page_action_internals_ui.h"
++#include "chrome/browser/ui/webui/paani/paani_ui.h"
+ #include "chrome/browser/ui/webui/password_manager/password_manager_ui.h"
+ #include "chrome/browser/ui/webui/profile_internals/profile_internals_ui.h"
+ #include "chrome/browser/ui/webui/search_engine_choice/search_engine_choice_ui.h"
+@@ -385,6 +386,7 @@
+   map.AddWebUIConfig(std::make_unique<OrganizerPanelUIConfig>());
+   map.AddWebUIConfig(
+       std::make_unique<on_device_internals::OnDeviceInternalsUIConfig>());
++  map.AddWebUIConfig(std::make_unique<PaaniUIConfig>());
+   map.AddWebUIConfig(std::make_unique<PageActionInternalsUIConfig>());
+   map.AddWebUIConfig(std::make_unique<PasswordManagerUIConfig>());
+   map.AddWebUIConfig(std::make_unique<ProfileInternalsUIConfig>());
+--- a/chrome/browser/ui/webui/BUILD.gn
++++ b/chrome/browser/ui/webui/BUILD.gn
+@@ -126,6 +126,7 @@
+       "//chrome/browser/ui/webui/omnibox_everywhere",
+       "//chrome/browser/ui/webui/omnibox_popup",
+       "//chrome/browser/ui/webui/organizer_panel",
++      "//chrome/browser/ui/webui/paani",
+       "//chrome/browser/ui/webui/page_action_internals",
+       "//chrome/browser/ui/webui/profile_internals",
+       "//chrome/browser/ui/webui/tab_search",
+--- a/chrome/browser/resources/BUILD.gn
++++ b/chrome/browser/resources/BUILD.gn
+@@ -84,6 +84,7 @@
+       "omnibox_everywhere:resources",
+       "omnibox_popup:resources",
+       "organizer_panel:resources",
++      "paani:resources",
+       "password_manager:resources",
+       "profile_internals:resources",
+       "search_engine_choice:resources",
+--- a/chrome/chrome_paks.gni
++++ b/chrome/chrome_paks.gni
+@@ -231,6 +231,7 @@
+         "$root_gen_dir/chrome/key_value_pair_viewer_shared_resources.pak",
+         "$root_gen_dir/chrome/new_tab_footer_resources.pak",
+         "$root_gen_dir/chrome/organizer_panel_resources.pak",
++        "$root_gen_dir/chrome/paani_resources.pak",
+         "$root_gen_dir/chrome/password_manager_resources.pak",
+         "$root_gen_dir/chrome/profile_internals_resources.pak",
+         "$root_gen_dir/chrome/search_engine_choice_resources.pak",
+--- a/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
++++ b/chrome/browser/profiles/chrome_browser_main_extra_parts_profiles.cc
+@@ -151,6 +151,7 @@
+ #include "chrome/browser/optimization_guide/optimization_guide_keyed_service_factory.h"
+ #include "chrome/browser/origin_gating/origin_gating_service_factory.h"
+ #include "chrome/browser/origin_trials/origin_trials_factory.h"
++#include "chrome/browser/paani/adblock/paani_adblock_service.h"
+ #include "chrome/browser/page_content_annotations/page_content_annotations_service_factory.h"
+ #include "chrome/browser/page_content_annotations/page_content_extraction_service_factory.h"
+ #include "chrome/browser/page_content_annotations/page_content_screenshot_service_factory.h"
+@@ -1252,6 +1253,7 @@
+   origin_gating::OriginGatingServiceFactory::GetInstance();
+   OriginKeyedPermissionActionServiceFactory::GetInstance();
+   OriginTrialsFactory::GetInstance();
++  paani::PaaniAdblockServiceFactory::GetInstance();
+   PageContentAnnotationsServiceFactory::GetInstance();
+   page_content_annotations::PageContentExtractionServiceFactory::GetInstance();
+   page_content_annotations::PageContentScreenshotServiceFactory::GetInstance();
+--- a/chrome/browser/chrome_browser_interface_binders_webui_parts_desktop.cc
++++ b/chrome/browser/chrome_browser_interface_binders_webui_parts_desktop.cc
+@@ -69,6 +69,7 @@
+ #include "chrome/browser/ui/webui/on_device_internals/on_device_internals_ui.h"
+ #include "chrome/browser/ui/webui/organizer_panel/organizer_panel_ui.h"
+ #include "chrome/browser/ui/webui/organizer_panel/tab_groups.mojom.h"
++#include "chrome/browser/ui/webui/paani/paani_ui.h"
+ #include "chrome/browser/ui/webui/page_action_internals/page_action_internals.mojom.h"
+ #include "chrome/browser/ui/webui/page_action_internals/page_action_internals_ui.h"
+ #include "chrome/browser/ui/webui/password_manager/password_manager_ui.h"
+@@ -601,6 +602,13 @@
+       .Add<tab_search::mojom::SearchHandler>()
+       .Add<organizer_panel::mojom::TabGroupsOrganizerPageHandlerFactory>();
+ 
++  // chrome://paani talks to the built in ad blocker through this factory. The
++  // page can render without it, but every call from it then fails and the
++  // browser kills the renderer with "No binder found for interface
++  // paani.mojom.PageHandlerFactory".
++  registry.ForWebUI<PaaniUI>()
++      .Add<paani::mojom::PageHandlerFactory>();
++
+   if (base::FeatureList::IsEnabled(ntp_features::kNtpFooter)) {
+     registry.ForWebUI<NewTabFooterUI>()
+         .Add<customize_buttons::mojom::CustomizeButtonsHandlerFactory>()
+--- a/chrome/browser/profiles/BUILD.gn
++++ b/chrome/browser/profiles/BUILD.gn
+@@ -783,6 +783,7 @@
+     "//chrome/browser/optimization_guide",
+     "//chrome/browser/origin_gating",
+     "//chrome/browser/origin_trials",
++    "//chrome/browser/paani/adblock:paani_adblock",
+     "//chrome/browser/page_content_annotations",
+     "//chrome/browser/page_content_annotations:extraction_service",
+     "//chrome/browser/page_content_annotations:screenshot_service",
+--- a/third_party/lit/v3_0/BUILD.gn
++++ b/third_party/lit/v3_0/BUILD.gn
+@@ -87,6 +87,7 @@
+     "//chrome/browser/resources/on_device_internals:build_ts",
+     "//chrome/browser/resources/on_device_translation_internals:build_ts",
+     "//chrome/browser/resources/organizer_panel:build_ts",
++    "//chrome/browser/resources/paani:build_ts",
+     "//chrome/browser/resources/page_action_internals:build_ts",
+     "//chrome/browser/resources/pdf:build_ts",
+     "//chrome/browser/resources/print_preview:build_ts",
+--- a/tools/gritsettings/resource_ids.spec
++++ b/tools/gritsettings/resource_ids.spec
+@@ -927,6 +927,10 @@
+     "META": {"sizes": {"includes": [30]}},
+     "includes": [5370],
+   },
++  "<(SHARED_INTERMEDIATE_DIR)/chrome/browser/resources/paani/resources.grd": {
++    "META": {"sizes": {"includes": [10]}},
++    "includes": [5400],
++  },
+   # END chrome/ WebUI resources section
+ 
+   # START chrome/ miscellaneous section.

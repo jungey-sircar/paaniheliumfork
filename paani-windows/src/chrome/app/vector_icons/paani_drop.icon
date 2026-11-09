@@ -1,0 +1,16 @@
+// Copyright 2026 The Paani Authors
+// Use of this source code is governed by a GPL-3.0 license that can be
+// found in the LICENSE file.
+
+// Paani's mark: a drop of water. The tool button that shows what the built in
+// blocker stopped wears it, so the control reads as Paani's own rather than as
+// a generic browser button.
+
+CANVAS_DIMENSIONS, 24,
+FILL_RULE_NONZERO,
+MOVE_TO, 12, 2,
+CUBIC_TO, 8.5, 7.5, 4.5, 10.5, 4.5, 14.5,
+ARC_TO, 7.5, 7.5, 0, 0, 0, 12, 22,
+ARC_TO, 7.5, 7.5, 0, 0, 0, 19.5, 14.5,
+CUBIC_TO, 19.5, 10.5, 15.5, 7.5, 12, 2,
+CLOSE

@@ -1,0 +1,7 @@
+/build/*
+!/build/patchwork/
+/build/patchwork/__pycache__/
+/build/patchwork/*.log
+/.gcs_entries
+__pycache__
+/resources/generated

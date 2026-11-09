@@ -1,0 +1,17 @@
+windows/change-branding.patch
+windows/paani-scheme.patch
+windows/paani-versioning.patch
+windows/paani-brand-rename.patch
+windows/paani-binary-rename.patch
+windows/paani-native-frame.patch
+windows/paani-webui-logo.patch
+windows/paani-onboarding-brand.patch
+windows/paani-adblock.patch
+windows/paani-adblock-rust-unsafe.patch
+windows/paani-no-ublock-component.patch
+windows/paani-webui-page.patch
+windows/paani-water-theme.patch
+windows/paani-mica-backdrop.patch
+windows/paani-rust-vendor.patch
+windows/paani-water-backdrop.patch
+windows/paani-shield-button.patch

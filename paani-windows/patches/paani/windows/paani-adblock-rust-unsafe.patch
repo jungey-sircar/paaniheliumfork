@@ -1,0 +1,172 @@
+Enables unsafe code for the crates of the ad blocker closure.
+
+Paani builds the Brave adblock-rust engine, which depends on crates that
+upstream Chromium vendors but never compiles.  Their generated BUILD.gn files
+say `allow_unsafe = false`, so rustc is invoked with `-F unsafe-code` and
+rejects the `unsafe` blocks in them.  The flag is turned off for exactly the
+crates that //third_party/rust/adblock pulls in.
+--- a/third_party/rust/adblock/v0_13/BUILD.gn
++++ b/third_party/rust/adblock/v0_13/BUILD.gn
+@@ -69,7 +69,7 @@
+   cargo_pkg_repository = "https://github.com/brave/adblock-rust/"
+   cargo_pkg_version = "0.13.5"
+ 
+-  allow_unsafe = false
++  allow_unsafe = true
+ 
+   deps = [
+     "//third_party/rust/addr/v0_15:lib",
+--- a/third_party/rust/aho_corasick/v1/BUILD.gn
++++ b/third_party/rust/aho_corasick/v1/BUILD.gn
+@@ -58,7 +58,7 @@
+   cargo_pkg_repository = "https://github.com/BurntSushi/aho-corasick"
+   cargo_pkg_version = "1.1.5"
+ 
+-  allow_unsafe = false
++  allow_unsafe = true
+ 
+   deps = [ "//third_party/rust/memchr/v2:lib" ]
+   features = [
+--- a/third_party/rust/arrayvec/v0_7/BUILD.gn
++++ b/third_party/rust/arrayvec/v0_7/BUILD.gn
+@@ -33,7 +33,7 @@
+   cargo_pkg_repository = "https://github.com/bluss/arrayvec"
+   cargo_pkg_version = "0.7.8"
+ 
+-  allow_unsafe = false
++  allow_unsafe = true
+ 
+   features = [
+     "default",
+--- a/third_party/rust/base64/v0_22/BUILD.gn
++++ b/third_party/rust/base64/v0_22/BUILD.gn
+@@ -47,7 +47,7 @@
+   cargo_pkg_repository = "https://github.com/marshallpierce/rust-base64"
+   cargo_pkg_version = "0.22.1"
+ 
+-  allow_unsafe = false
++  allow_unsafe = true
+ 
+   features = [
+     "alloc",
+--- a/third_party/rust/bitflags/v2/BUILD.gn
++++ b/third_party/rust/bitflags/v2/BUILD.gn
+@@ -72,7 +72,7 @@
+   cargo_pkg_repository = "https://github.com/bitflags/bitflags"
+   cargo_pkg_version = "2.13.2"
+ 
+-  allow_unsafe = false
++  allow_unsafe = true
+ 
+   deps = [ "//third_party/rust/serde_core/v1:lib" ]
+   features = [
+--- a/third_party/rust/flatbuffers/v25/BUILD.gn
++++ b/third_party/rust/flatbuffers/v25/BUILD.gn
+@@ -40,7 +40,7 @@
+   cargo_pkg_repository = "https://github.com/google/flatbuffers"
+   cargo_pkg_version = "25.12.19"
+ 
+-  allow_unsafe = false
++  allow_unsafe = true
+ 
+   deps = [ "//third_party/rust/bitflags/v2:lib" ]
+   build_deps = [ "//third_party/rust/rustc_version/v0_4:buildrs_support" ]
+--- a/third_party/rust/idna/v1/BUILD.gn
++++ b/third_party/rust/idna/v1/BUILD.gn
+@@ -30,7 +30,7 @@
+   cargo_pkg_repository = "https://github.com/servo/rust-url/"
+   cargo_pkg_version = "1.1.0"
+ 
+-  allow_unsafe = false
++  allow_unsafe = true
+ 
+   deps = [
+     "//third_party/rust/idna_adapter/v1:lib",
+--- a/third_party/rust/percent_encoding/v2/BUILD.gn
++++ b/third_party/rust/percent_encoding/v2/BUILD.gn
+@@ -27,7 +27,7 @@
+   cargo_pkg_repository = "https://github.com/servo/rust-url/"
+   cargo_pkg_version = "2.3.2"
+ 
+-  allow_unsafe = false
++  allow_unsafe = true
+ 
+   features = [
+     "alloc",
+--- a/third_party/rust/seahash/v4/BUILD.gn
++++ b/third_party/rust/seahash/v4/BUILD.gn
+@@ -33,7 +33,7 @@
+   cargo_pkg_repository = "https://gitlab.redox-os.org/redox-os/seahash"
+   cargo_pkg_version = "4.1.0"
+ 
+-  allow_unsafe = false
++  allow_unsafe = true
+ 
+   features = [ "default" ]
+ 
+--- a/third_party/rust/semver/v1/BUILD.gn
++++ b/third_party/rust/semver/v1/BUILD.gn
+@@ -35,7 +35,7 @@
+   cargo_pkg_repository = "https://github.com/dtolnay/semver"
+   cargo_pkg_version = "1.0.28"
+ 
+-  allow_unsafe = false
++  allow_unsafe = true
+ 
+   features = [
+     "default",
+--- a/third_party/rust/serde/v1/BUILD.gn
++++ b/third_party/rust/serde/v1/BUILD.gn
+@@ -50,7 +50,7 @@
+   cargo_pkg_repository = "https://github.com/serde-rs/serde"
+   cargo_pkg_version = "1.0.229"
+ 
+-  allow_unsafe = false
++  allow_unsafe = true
+ 
+   deps = [
+     "//third_party/rust/serde_core/v1:lib",
+--- a/third_party/rust/synstructure/v0_13/BUILD.gn
++++ b/third_party/rust/synstructure/v0_13/BUILD.gn
+@@ -27,7 +27,7 @@
+   cargo_pkg_repository = "https://github.com/mystor/synstructure"
+   cargo_pkg_version = "0.13.2"
+ 
+-  allow_unsafe = false
++  allow_unsafe = true
+ 
+   deps = [
+     "//third_party/rust/proc_macro2/v1:lib",
+--- a/third_party/rust/thiserror_impl/v1/BUILD.gn
++++ b/third_party/rust/thiserror_impl/v1/BUILD.gn
+@@ -35,7 +35,7 @@
+   cargo_pkg_repository = "https://github.com/dtolnay/thiserror"
+   cargo_pkg_version = "1.0.69"
+ 
+-  allow_unsafe = false
++  allow_unsafe = true
+ 
+   deps = [
+     "//third_party/rust/proc_macro2/v1:lib",
+--- a/third_party/rust/yoke_derive/v0_8/BUILD.gn
++++ b/third_party/rust/yoke_derive/v0_8/BUILD.gn
+@@ -29,7 +29,7 @@
+   cargo_pkg_repository = "https://github.com/unicode-org/icu4x"
+   cargo_pkg_version = "0.8.2"
+ 
+-  allow_unsafe = false
++  allow_unsafe = true
+ 
+   deps = [
+     "//third_party/rust/proc_macro2/v1:lib",
+--- a/third_party/rust/zerovec_derive/v0_11/BUILD.gn
++++ b/third_party/rust/zerovec_derive/v0_11/BUILD.gn
+@@ -31,7 +31,7 @@
+   cargo_pkg_repository = "https://github.com/unicode-org/icu4x"
+   cargo_pkg_version = "0.11.6"
+ 
+-  allow_unsafe = false
++  allow_unsafe = true
+ 
+   deps = [
+     "//third_party/rust/proc_macro2/v1:lib",

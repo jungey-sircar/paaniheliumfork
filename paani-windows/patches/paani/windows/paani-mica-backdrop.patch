@@ -1,0 +1,78 @@
+Draws the browser frame over the Windows 11 Mica backdrop.
+
+paani-native-frame.patch leaves the titlebar unpainted on Windows so that a
+native material can show through, but nothing asked the DWM for one.  This sets
+DWMWA_SYSTEMBACKDROP_TYPE on the browser window: Mica while the native frame
+materials are enabled, none when they are turned off.
+
+Web contents keep their own opaque surface, so a page is never tinted.
+--- a/chrome/browser/ui/views/frame/browser_frame_view_win.h
++++ b/chrome/browser/ui/views/frame/browser_frame_view_win.h
+@@ -5,7 +5,10 @@
+ #ifndef CHROME_BROWSER_UI_VIEWS_FRAME_BROWSER_FRAME_VIEW_WIN_H_
+ #define CHROME_BROWSER_UI_VIEWS_FRAME_BROWSER_FRAME_VIEW_WIN_H_
+ 
++#include <windows.h>
++
+ #include <array>
++#include <optional>
+ 
+ #include "base/memory/raw_ptr.h"
+ #include "base/win/scoped_gdi_object.h"
+@@ -99,6 +102,15 @@
+  private:
+   friend class BrowserCaptionButtonContainer;
+ 
++  // Asks the DWM for, or away from, the native window backdrop. This is
++  // what the titlebar is left unpainted for; without it the frame would
++  // show whatever the compositor leaves behind.
++  void UpdateNativeFrameBackdrop();
++
++  // The backdrop last handed to the DWM, so that the attribute is only
++  // set when it actually changes.
++  std::optional<DWORD> applied_system_backdrop_;
++
+   // Describes the type of titlebar that a window might have; used to query
+   // whether specific elements may be present.
+   enum class TitlebarType {
+--- a/chrome/browser/ui/views/frame/browser_frame_view_win.cc
++++ b/chrome/browser/ui/views/frame/browser_frame_view_win.cc
+@@ -472,6 +472,7 @@
+ 
+ void BrowserFrameViewWin::OnPaint(gfx::Canvas* canvas) {
+   TRACE_EVENT0("views.frame", "BrowserFrameViewWin::OnPaint");
++  UpdateNativeFrameBackdrop();
+   PaintTitlebar(canvas);
+ }
+ 
+@@ -489,6 +490,30 @@
+ 
+ ///////////////////////////////////////////////////////////////////////////////
+ // BrowserFrameViewWin, private:
++
++void BrowserFrameViewWin::UpdateNativeFrameBackdrop() {
++  HWND hwnd = views::HWNDForWidget(browser_widget());
++  if (!hwnd) {
++    return;
++  }
++
++  // Mica is the desktop material Windows 11 uses behind a normal window;
++  // none of this happens unless the native frame materials are on, which
++  // already bails out on reduced transparency and forced colours.
++  const DWORD backdrop =
++      helium::ShouldUseNativeFrameMaterials(GetBrowserView())
++          ? DWMSBT_MAINWINDOW
++          : DWMSBT_NONE;
++  if (applied_system_backdrop_.has_value() &&
++      applied_system_backdrop_.value() == backdrop) {
++    return;
++  }
++
++  if (SUCCEEDED(::DwmSetWindowAttribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE,
++                                         &backdrop, sizeof(backdrop)))) {
++    applied_system_backdrop_ = backdrop;
++  }
++}
+ 
+ int BrowserFrameViewWin::FrameBorderThickness() const {
+   return (IsMaximized() || browser_widget()->IsFullscreen())

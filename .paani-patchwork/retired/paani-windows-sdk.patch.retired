@@ -1,0 +1,63 @@
+Allows the browser to be built with a Windows SDK that is older than
+the one that Chromium asks for.
+--- a/build/vs_toolchain.py
++++ b/build/vs_toolchain.py
+@@ -60,7 +60,8 @@
+ #   Make sure any version numbers in the documentation match the code.
+ #
+ TOOLCHAIN_HASH = '3bfcb536c8'
+-SDK_VERSION = '10.0.28000.0'
++SDK_VERSION = os.environ.get('PAANI_WINDOWS_SDK_VERSION',
++                          '10.0.28000.0')
+ 
+ # Visual Studio versions are listed in descending order of priority.
+ # The first version is assumed by this script to be the one that is packaged,
+@@ -510,6 +511,12 @@
+         if not os.path.exists(full_path):
+             if is_optional:
+                 continue
++            # The Debugging Tools for Windows are an optional component of
++            # the Windows SDK.  They are only used to symbolize the stack
++            # traces of a crash, so a build without them still produces a
++            # working browser.
++            elif not os.path.isdir(os.path.dirname(full_path)):
++                continue
+             else:
+                 raise Exception(
+                     '%s not found in "%s"\r\nYou must install '
+--- a/build/toolchain/win/setup_toolchain.py
++++ b/build/toolchain/win/setup_toolchain.py
+@@ -22,7 +22,8 @@
+ import gn_helpers
+ 
+ SCRIPT_DIR = os.path.dirname(__file__)
+-SDK_VERSION = '10.0.28000.0'
++SDK_VERSION = os.environ.get('PAANI_WINDOWS_SDK_VERSION',
++                          '10.0.28000.0')
+ MSVC_DIR = re.compile('^.*/VC/Tools/MSVC/[^/]+/include$')
+ WINDOWS_KITS_DIR = re.compile(r'^(.*/Windows Kits/\d+/Include/[^/]+)/.*')
+ 
+--- a/build/config/win/BUILD.gn
++++ b/build/config/win/BUILD.gn
+@@ -305,7 +305,7 @@
+ # manually override this config for their compiles.
+ config("winver") {
+   defines = [
+-    "NTDDI_VERSION=NTDDI_WIN11_BR",
++    "NTDDI_VERSION=NTDDI_WIN10_NI",
+ 
+     # We can't say `=_WIN32_WINNT_WIN10` here because some files do
+     # `#if WINVER < 0x0600` without including windows.h before,
+--- a/base/win/windows_version.cc
++++ b/base/win/windows_version.cc
+@@ -27,8 +27,8 @@
+ #error VS 2017 Update 3.2 or higher is required
+ #endif
+ 
+-#if !defined(NTDDI_WIN11_BR)
+-#error Windows 10.0.28000.0 SDK or higher required.
++#if !defined(NTDDI_WIN10_NI)
++#error Windows 10.0.22000.0 SDK or higher required.
+ #endif
+ 
+ namespace base {

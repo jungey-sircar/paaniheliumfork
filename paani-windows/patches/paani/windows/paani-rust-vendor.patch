@@ -1,0 +1,38 @@
+Fixes two vendored Rust targets that the ad blocker builds first.
+
+//third_party/rust/adblock is the first consumer of //third_party/rust/thiserror/v1
+and //third_party/rust/flatbuffers/v25, and both generated BUILD.gn files describe
+them in a way that only works while nothing compiles them.  thiserror v1 promises a
+`private.rs` build-script output its build.rs does not produce - that is thiserror
+v2 - so run_build_script.py aborts looking for the file.  flatbuffers enables
+`feature(trusted_len)` under the nightly cfg that Chromium always sets, which the
+default `disallow_unstable_features` config forbids with an empty
+`-Zallow-features=`.
+--- a/third_party/rust/thiserror/v1/BUILD.gn
++++ b/third_party/rust/thiserror/v1/BUILD.gn
+@@ -37,7 +37,6 @@
+       "//third_party/rust/chromium_crates_io/vendor/thiserror-v1/build.rs"
+   build_sources =
+       [ "//third_party/rust/chromium_crates_io/vendor/thiserror-v1/build.rs" ]
+-  build_script_outputs = [ "private.rs" ]
+ 
+   # Only for usage from third-party crates. Add the crate to
+   # //third_party/rust/chromium_crates_io/Cargo.toml to use
+--- a/third_party/rust/flatbuffers/v25/BUILD.gn
++++ b/third_party/rust/flatbuffers/v25/BUILD.gn
+@@ -78,7 +78,14 @@
+   # Changing (if needed) which configs apply to this specific crate (based on
+   # `extra_kv.configs_to_remove` and `extra_kv.configs_to_add` from
+   # `gnrt_config.toml`).
+-  _configs_to_remove += []
++  _configs_to_remove += [
++    # `flatbuffers` has `#![cfg_attr(nightly, feature(trusted_len))]` in
++    # src/lib.rs, and Chromium always passes `--cfg nightly`, so that
++    # feature has to be reachable.  Upstream never compiles this crate, so
++    # the empty `-Zallow-features=` of the default config was never
++    # noticed; //third_party/rust/adblock is the first consumer.
++    "//build/config/compiler:disallow_unstable_features",
++  ]
+   _configs_to_add += []
+ 
+   # Applying config changes.

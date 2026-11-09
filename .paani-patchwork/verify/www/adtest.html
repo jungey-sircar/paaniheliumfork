@@ -1,0 +1,30 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>paani ad test</title></head>
+<body>
+<div id="result">pending</div>
+<script>
+  // A cache buster keeps repeat loads honest: neither the HTTP cache nor
+  // Blink's memory cache may answer the request.
+  var cb = new URLSearchParams(location.search).get('cb') || '0';
+  var seen = { blocked: [], loaded: [] };
+  var urls = [
+    'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js',
+    'https://securepubads.g.doubleclick.net/tag/js/gpt.js',
+    'https://www.googletagservices.com/tag/js/gpt.js'
+  ];
+  var pending = urls.length;
+  function finish() {
+    document.getElementById('result').textContent =
+      'RESULT blocked=' + seen.blocked.length + ' loaded=' + seen.loaded.length +
+      ' | ' + JSON.stringify(seen);
+  }
+  urls.forEach(function (u) {
+    var s = document.createElement('script');
+    s.src = u + '?cb=' + cb;
+    s.onload = function () { seen.loaded.push(u); if (--pending === 0) finish(); };
+    s.onerror = function () { seen.blocked.push(u); if (--pending === 0) finish(); };
+    document.head.appendChild(s);
+  });
+  setTimeout(finish, 15000);
+</script>
+</body></html>

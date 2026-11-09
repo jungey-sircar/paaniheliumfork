@@ -1,0 +1,125 @@
+Puts the Paani blocker on the toolbar.
+
+Paani blocks ads with its own filter engine instead of an extension, which
+leaves the user no popup to open for the two things an extension would have
+shown: how much was stopped on this page, and a way to stop filtering this one
+page. Both belong in the toolbar, so ToolbarView creates a PaaniShieldButton in
+the place where an extension icon would not sit, and ToolbarView::Update() hands
+it the tab the user is looking at. The button itself, and the water drop it
+wears, are staged source.
+--- a/chrome/browser/ui/views/toolbar/toolbar_view.h
++++ b/chrome/browser/ui/views/toolbar/toolbar_view.h
+@@ -69,6 +69,10 @@
+ class PerformanceInterventionButton;
+ class TabStripRegionView;
+ 
++namespace paani {
++class PaaniShieldButton;
++}  // namespace paani
++
+ namespace views {
+ class FlexLayout;
+ class LabelButton;
+@@ -491,6 +495,7 @@
+   raw_ptr<AvatarToolbarButton> avatar_ = nullptr;
+   raw_ptr<ToolbarButton> dynamic_new_tab_button_ = nullptr;
+   raw_ptr<MediaToolbarButton> media_button_ = nullptr;
++  raw_ptr<paani::PaaniShieldButton> paani_shield_button_ = nullptr;
+   raw_ptr<BrowserAppMenuButton> app_menu_button_ = nullptr;
+   raw_ptr<TabStripRegionView> tab_strip_region_view_ = nullptr;
+ 
+--- a/chrome/browser/ui/views/toolbar/toolbar_view.cc
++++ b/chrome/browser/ui/views/toolbar/toolbar_view.cc
+@@ -111,6 +111,7 @@
+ #include "chrome/browser/ui/views/toolbar/chrome_labs/chrome_labs_coordinator.h"
+ #include "chrome/browser/ui/views/toolbar/home_button.h"
+ #include "chrome/browser/ui/views/toolbar/overflow_menu.h"
++#include "chrome/browser/ui/views/toolbar/paani_shield_button.h"
+ #include "chrome/browser/ui/views/toolbar/pinned_toolbar_actions_container.h"
+ #include "chrome/browser/ui/views/toolbar/reload_button.h"
+ #include "chrome/browser/ui/views/toolbar/split_tabs_button.h"
+@@ -719,6 +720,11 @@
+     media_button_ = AddChildView(std::move(media_button));
+   }
+ 
++  // Paani's built in blocker has no extension popup to live in, so the
++  // per tab count and the per site allowlist are on the toolbar itself.
++  paani_shield_button_ =
++      AddChildView(std::make_unique<paani::PaaniShieldButton>(browser_));
++
+   if (glic::GlicEnabling::IsProfileEligible(browser_view_->GetProfile())) {
+     if (base::FeatureList::IsEnabled(features::kAiOverlayDialog) &&
+         ttc::AiOverlayDialogController::From(browser_)) {
+@@ -1432,6 +1438,10 @@
+ void ToolbarView::Update(WebContents* tab) {
+   if (location_bar_) {
+     location_bar_->Update(tab);
++  }
++
++  if (paani_shield_button_) {
++    paani_shield_button_->SetTab(tab);
+   }
+ 
+   if (custom_tab_bar_) {
+--- a/chrome/browser/ui/views/toolbar/BUILD.gn
++++ b/chrome/browser/ui/views/toolbar/BUILD.gn
+@@ -178,6 +178,8 @@
+     "home_button.cc",
+     "overflow_button.cc",
+     "overflow_menu.cc",
++    "paani_shield_button.cc",
++    "paani_shield_button.h",
+     "pinned_action_toolbar_button.cc",
+     "pinned_action_toolbar_button_menu_model.cc",
+     "pinned_toolbar_actions_container.cc",
+@@ -217,6 +219,7 @@
+ 
+   deps = [
+     ":toolbar",
++    "//base",
+     "//base:i18n",
+     "//build:branding_buildflags",
+     "//cc/paint",
+@@ -246,6 +249,7 @@
+     "//chrome/browser/glic/browser_ui/activity_list_bubble:ui",
+     "//chrome/browser/lifetime",
+     "//chrome/browser/media/router:media_router_feature",
++    "//chrome/browser/paani/adblock:paani_adblock",
+     "//chrome/browser/performance_manager/public/user_tuning",
+     "//chrome/browser/prefs",
+     "//chrome/browser/preloading",
+@@ -335,11 +339,13 @@
+     "//components/autofill/core/common:features",
+     "//components/feature_engagement/public",
+     "//components/omnibox/browser",
++    "//components/prefs",
+     "//components/password_manager/content/common",
+     "//components/performance_manager",
+     "//components/safe_browsing/core/common",
+     "//components/send_tab_to_self",
+     "//components/sessions",
++    "//components/tabs:public",
+     "//components/signin/public/base:signin_buildflags",
+     "//components/signin/public/base:signin_switches",
+     "//components/signin/public/identity_manager",
+@@ -366,8 +372,10 @@
+     "//ui/events",
+     "//ui/gfx/range",
+     "//ui/lottie",
++    "//ui/menus",
+     "//ui/native_theme",
+     "//ui/views/controls/webview",
++    "//url",
+   ]
+ 
+   if (use_aura) {
+--- a/chrome/app/vector_icons/BUILD.gn
++++ b/chrome/app/vector_icons/BUILD.gn
+@@ -242,6 +242,7 @@
+     "open_in_new_old.icon",
+     "overflow_button_old.icon",
+     "overflow_button_touch_old.icon",
++    "paani_drop.icon",
+     "paintbrush_old.icon",
+     "password.icon",
+     "password_field_old.icon",

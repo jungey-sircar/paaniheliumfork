@@ -1,0 +1,32 @@
+Does not install the uBlock Origin component extension.
+
+Paani blocks ads with its own filter engine, so the uBlock Origin component
+extension that Helium ships is not installed in Paani. The extension would be
+a second blocker next to the first one, and its own popup would show a count
+that has nothing to do with the one Paani shows. The filter lists and the
+redirect stubs are pak resources, not extension files, so they stay available
+and Paani's engine keeps reading them.
+--- a/chrome/browser/extensions/component_loader.cc
++++ b/chrome/browser/extensions/component_loader.cc
+@@ -616,18 +616,9 @@
+ }
+ 
+ void ComponentLoader::AddUBlock() {
+-  Add(IDR_UBLOCK_MANIFEST_JSON, base::FilePath(FILE_PATH_LITERAL("ublock")));
+-
+-  using namespace extension_l10n_util;
+-  ComponentExtensionInfo& info = component_extensions_.back();
+-  std::string error;
+-  bool localized = LocalizeExtension(info.root_directory, &info.manifest,
+-                      GzippedMessagesPermission::kAllowForTrustedSource,
+-                      &error, true);
+-
+-  if (!localized) {
+-    LOG(ERROR) << "Failed to localize uBlock: " << error;
+-  }
++  // Paani blocks ads with its own filter engine, so the uBlock Origin
++  // component extension is not installed. Its filter lists and its
++  // redirect stubs stay in resources.pak, where Paani's engine reads them.
+ }
+ 
+ void ComponentLoader::AddExtstoreFixups() {

@@ -1,0 +1,53 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Build and verification logs / temporary outputs
+logs/
+*.log
+*.err
+*.out
+
+# Chromium / Helium binary baselines & extracted upstream trees (.paani-patchwork)
+.paani-patchwork/baseline/
+.paani-patchwork/baseline_run/
+.paani-patchwork/base/
+.paani-patchwork/base2/
+.paani-patchwork/base3/
+.paani-patchwork/read/
+.paani-patchwork/cfg/
+.paani-patchwork/logs/
+
+# Runtime browser profiles, caches, and verification logs/screenshots
+.paani-patchwork/verify/profile*/
+.paani-patchwork/verify/profile/
+.paani-patchwork/verify/installed/
+.paani-patchwork/verify/probe/
+.paani-patchwork/verify/logs/
+.paani-patchwork/verify/dom_paani.html
+.paani-patchwork/verify/paani_page.png
+
+# Compiled binaries, debug symbols, packed resources, and large archives (>100 MB GitHub limit)
+*.exe
+*.dll
+*.pdb
+*.pak
+*.dat
+*.bin
+*.7z
+*.zip
+*.tar.zst
+*.zst
+*.msi
+*.msix
+
+# Nested paani-windows build artifacts (if ever tracked here)
+paani-windows/build/src/
+paani-windows/build/download_cache/
+paani-windows/build/baseline_helium/
+paani-windows/build/logs/
+paani-windows/build/pybin/
+paani-windows/build/state/
+paani-windows/resources/generated/
+paani-windows/logs/

@@ -1,0 +1,14 @@
+# input size output
+#
+# Paani application icon, scaled to every size the Chromium theme expects.
+paani/branding/app_icon/raw.png 256 generated/product_icon/256x256.png
+paani/branding/app_icon/raw.png 128 generated/product_icon/128x128.png
+paani/branding/app_icon/raw.png 64 generated/product_icon/64x64.png
+paani/branding/app_icon/raw.png 48 generated/product_icon/48x48.png
+paani/branding/app_icon/raw.png 32 generated/product_icon/32x32.png
+paani/branding/app_icon/raw.png 24 generated/product_icon/24x24.png
+paani/branding/app_icon/raw.png 16 generated/product_icon/16x16.png
+
+# Windows executables and document icons are real multi-resolution .ico
+# files; they are written by utils/paani_icons.py, because a PNG renamed to
+# .ico is not something the Windows resource compiler can embed.

@@ -1,0 +1,2 @@
+# Paani carries no toolchain patches: the machine has to provide the
+# Windows SDK that upstream Chromium pins (see README.md).

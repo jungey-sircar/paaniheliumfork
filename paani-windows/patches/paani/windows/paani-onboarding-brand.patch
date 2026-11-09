@@ -1,0 +1,219 @@
+Draws the Paani mark in the onboarding page.
+--- a/components/helium_onboarding/index.html
++++ b/components/helium_onboarding/index.html
+@@ -5,7 +5,7 @@
+     <meta charset="UTF-8" />
+     <link rel="icon" type="image/png" href="/favicon.png" />
+     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+-    <title>Helium Setup</title>
++    <title>Paani Setup</title>
+ </head>
+ 
+ <body>
+--- a/components/helium_onboarding/helium_onboarding_strings.grdp
++++ b/components/helium_onboarding/helium_onboarding_strings.grdp
+@@ -34,7 +34,7 @@
+   Configure Helium to match your taste and import data from other browsers. Make it feel like home or jump straight to browsing.
+ </message>
+ <message name="IDS_HELIUM_ONBOARDING_WELCOME_TERMS" desc="Legal note shown during onboarding. Keep each BEGIN/END placeholder pair around its corresponding link text, but move the pairs as needed for a natural translation.">
+-  By continuing, you agree to the <ph name="BEGIN_LINK_PRIVACY">$1</ph>privacy policy<ph name="END_LINK_PRIVACY">$2</ph> and <ph name="BEGIN_LINK_TERMS">$3</ph>terms of use<ph name="END_LINK_TERMS">$4</ph>.
++  This is a personal build of Paani. It sends no telemetry and no usage data, and the pages you visit are only contacted when you ask for them.
+ </message>
+ <message name="IDS_HELIUM_ONBOARDING_WELCOME_FOOTER" desc="Footer text explaining that setup can be skipped but Helium services require consent.">
+   If you use defaults, Helium services will be automatically enabled.
+--- a/components/helium_onboarding/src/pages/Welcome.svelte
++++ b/components/helium_onboarding/src/pages/Welcome.svelte
+@@ -2,13 +2,11 @@
+     import { flushSync, onMount } from "svelte";
+     import {
+         Button,
+-        HeliumLogo,
+         IconArrowRight,
+         IconCheck,
+-        Link,
+     } from "@imput/helium-prism";
++    import PaaniLogo from "../components/PaaniLogo.svelte";
+     import { s } from "../lib/strings";
+-    import { parseLocalizedString } from "../lib/i18n";
+     import { setPref, acceptLatestSchema, openNewTab } from "../lib/browser";
+     import {
+         currentPage,
+@@ -27,10 +25,7 @@
+ 
+     const visible = $derived($currentPage === "Welcome");
+ 
+-    const privacyUrl = "https://helium.computer/privacy";
+-    const termsUrl = "https://helium.computer/terms";
+     const LOGO_TRANSITION_DELAY_MS = ONBOARDING_INTRO_DELAY_MS + 1600;
+-    const termsParts = parseLocalizedString(s.welcome.terms);
+ 
+     let introLogoVisible = $state(!$hasSeenIntro);
+     let introAnimating = $state(!$hasSeenIntro);
+@@ -70,7 +65,7 @@
+ 
+ {#if introLogoVisible}
+     <div id="welcome-logo-intro">
+-        <HeliumLogo height="84px" />
++        <PaaniLogo height="84px" />
+     </div>
+ {/if}
+ 
+@@ -85,7 +80,7 @@
+         <div id="welcome-top">
+             <div id="welcome-logo-text">
+                 <div id="welcome-logo" class:visible={finalLogoVisible}>
+-                    <HeliumLogo height="48px" />
++                    <PaaniLogo height="48px" />
+                 </div>
+                 <div id="welcome-text">
+                     <h1>
+@@ -108,17 +103,7 @@
+             </div>
+ 
+             <div id="welcome-footer">
+-                <p>
+-                    {#each termsParts as part}
+-                        {#if part.kind === "linkPrivacy"}
+-                            <Link href={privacyUrl}>{part.text}</Link>
+-                        {:else if part.kind === "linkTerms"}
+-                            <Link href={termsUrl}>{part.text}</Link>
+-                        {:else}
+-                            {part.text}
+-                        {/if}
+-                    {/each}
+-                </p>
++                <p>{s.welcome.terms}</p>
+ 
+                 <p>{s.welcome.footer}</p>
+             </div>
+--- a/components/helium_onboarding/src/pages/Finish.svelte
++++ b/components/helium_onboarding/src/pages/Finish.svelte
+@@ -1,10 +1,10 @@
+ <script lang="ts">
+     import {
+         Button,
+-        HeliumLogo,
+         IconArrowLeft,
+         IconCheck,
+     } from "@imput/helium-prism";
++    import PaaniLogo from "../components/PaaniLogo.svelte";
+     import { s } from "../lib/strings";
+     import { setPref, openNewTab } from "../lib/browser";
+     import { currentPage, previousPage } from "../lib/onboarding-flow";
+@@ -26,7 +26,7 @@
+         <div id="finish-top">
+             <div id="finish-logo-text">
+                 <div id="finish-logo">
+-                    <HeliumLogo height="64px" />
++                    <PaaniLogo height="64px" />
+                 </div>
+                 <div id="finish-text">
+                     <h1>{s.finish.title}</h1>
+--- a/components/helium_onboarding/src/pages/HeliumServices.svelte
++++ b/components/helium_onboarding/src/pages/HeliumServices.svelte
+@@ -1,5 +1,6 @@
+ <script lang="ts">
+-    import { CardLink, HeliumLogo } from "@imput/helium-prism";
++    import { CardLink } from "@imput/helium-prism";
++    import PaaniLogo from "../components/PaaniLogo.svelte";
+     import { s } from "../lib/strings";
+     import { platform } from "../lib/platform";
+     import { currentPage } from "../lib/onboarding-flow";
+@@ -53,7 +54,7 @@
+         <PageHeader
+             title={s.services.title}
+             subtitle={s.services.subtitle}
+-            Icon={HeliumLogo}
++            Icon={PaaniLogo}
+             iconHeight="32px"
+         />
+         <div class="page-content">
+--- a/components/helium_onboarding/src/components/BrowserImportGraphic.svelte
++++ b/components/helium_onboarding/src/components/BrowserImportGraphic.svelte
+@@ -1,6 +1,7 @@
+ <script lang="ts">
+     import { browserIcons } from "../lib/nonfree-icons";
+     import { platform } from "../lib/platform";
++    import paaniIcon from "../icons/paani.svg";
+ 
+     const { visible }: { visible: boolean } = $props();
+ 
+@@ -36,8 +37,8 @@
+ <div class={["browser-reveal", { collapsed: !visible }]} aria-hidden="true">
+     <div class="icon-stage">
+         <img
+-            class="browser-icon helium-icon"
+-            src={browserIcons.helium}
++            class="browser-icon paani-icon"
++            src={paaniIcon}
+             alt=""
+             draggable="false"
+         />
+@@ -111,7 +112,7 @@
+         animation: browser-reveal 0.65s var(--resize-easing) var(--reveal-delay) both;
+     }
+ 
+-    .helium-icon {
++    .paani-icon {
+         --offset: 0;
+         --y: 0;
+         --size: 1.6;
+--- /dev/null
++++ b/components/helium_onboarding/src/components/PaaniLogo.svelte
+@@ -0,0 +1,43 @@
++<script lang="ts">
++    import type { ClassValue } from "svelte/elements";
++
++    type Props = {
++        height?: string;
++        class?: ClassValue;
++    };
++
++    let {
++        height = "28px",
++        class: className,
++    }: Props = $props();
++</script>
++
++<span class={["paani-logo", className]} style:height aria-hidden="true">
++    <svg
++        width="56"
++        height="56"
++        viewBox="0 0 56 56"
++        fill="none"
++        xmlns="http://www.w3.org/2000/svg"
++    >
++        <path
++            d="M 28 4 C 27.294 27.294 4.706 30.824 4.706 47.765 Q 28 56.235 51.294 47.765 C 51.294 30.824 28.706 27.294 28 4 Z"
++            fill="currentColor"
++        />
++    </svg>
++</span>
++
++<style>
++    .paani-logo {
++        display: inline-flex;
++        color: currentColor;
++        flex: 0 0 auto;
++        width: auto;
++    }
++
++    .paani-logo :global(svg) {
++        display: block;
++        width: auto;
++        height: 100%;
++    }
++</style>
+--- /dev/null
++++ b/components/helium_onboarding/src/icons/paani.svg
+@@ -0,0 +1,10 @@
++<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
++  <defs>
++    <linearGradient id="paani" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="256">
++      <stop offset="0" stop-color="#35C5D8"/>
++      <stop offset="1" stop-color="#0B5F92"/>
++    </linearGradient>
++  </defs>
++  <rect width="256" height="256" rx="67" fill="url(#paani)"/>
++  <path d="M 128 26 C 126 92 62 102 62 150 Q 128 174 194 150 C 194 102 130 92 128 26 Z" fill="#FFFFFF"/>
++</svg>

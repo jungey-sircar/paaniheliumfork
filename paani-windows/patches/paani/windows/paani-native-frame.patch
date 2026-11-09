@@ -1,0 +1,268 @@
+Draws the browser chrome with the native window materials of the
+running system.
+--- a/chrome/browser/ui/ui_features.h
++++ b/chrome/browser/ui/ui_features.h
+@@ -24,8 +24,12 @@
+ BASE_DECLARE_FEATURE(kUseActionsForBrowserCommands);
+ bool ShouldUseActionsForBrowserCommands();
+ 
+-BASE_DECLARE_FEATURE(kHeliumNativeFrameMaterials);
+-bool HeliumNativeFrameAvailable();
++BASE_DECLARE_FEATURE(kPaaniNativeFrameMaterials);
++bool PaaniNativeFrameAvailable();
++
++// Returns true when the running system is able to render the
++// browser chrome with native window materials.
++bool PaaniNativeFrameMaterialsSupported();
+ 
+ BASE_DECLARE_FEATURE(kHeliumHidePageActions);
+ 
+--- a/chrome/browser/ui/ui_features.cc
++++ b/chrome/browser/ui/ui_features.cc
+@@ -17,6 +17,10 @@
+ #include "extensions/buildflags/buildflags.h"
+ #include "ui/base/ui_base_features.h"
+ 
++#if BUILDFLAG(IS_WIN)
++#include "base/win/windows_version.h"
++#endif  // BUILDFLAG(IS_WIN)
++
+ #if !BUILDFLAG(IS_ANDROID)
+ namespace {
+ 
+@@ -36,18 +40,31 @@
+ // Enables the migration of browser commands to Action API.
+ BASE_FEATURE(kUseActionsForBrowserCommands, base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+-BASE_FEATURE(kHeliumNativeFrameMaterials, base::FEATURE_DISABLED_BY_DEFAULT);
++#if BUILDFLAG(IS_WIN)
++BASE_FEATURE(kPaaniNativeFrameMaterials, base::FEATURE_ENABLED_BY_DEFAULT);
++#else
++BASE_FEATURE(kPaaniNativeFrameMaterials, base::FEATURE_DISABLED_BY_DEFAULT);
++#endif  // BUILDFLAG(IS_WIN)
+ 
+ BASE_FEATURE(kHeliumHidePageActions, base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+-bool HeliumNativeFrameAvailable() {
+-#if BUILDFLAG(IS_MAC)
+-  return base::FeatureList::IsEnabled(kHeliumNativeFrameMaterials);
++bool PaaniNativeFrameAvailable() {
++#if BUILDFLAG(IS_MAC) || BUILDFLAG(IS_WIN)
++  return base::FeatureList::IsEnabled(kPaaniNativeFrameMaterials);
+ #else
+   return false;
+ #endif
+ }
+ 
++bool PaaniNativeFrameMaterialsSupported() {
++#if BUILDFLAG(IS_WIN)
++  // The system backdrop needs Windows 11 22H2 or newer.
++  return base::win::GetVersion() >= base::win::Version::WIN11_22H2;
++#else
++  return true;
++#endif
++}
++
+ // Enables the use of WGC for the Eye Dropper screen capture.
+ BASE_FEATURE(kAllowEyeDropperWGCScreenCapture,
+ #if BUILDFLAG(IS_WIN)
+--- a/chrome/common/pref_names.h
++++ b/chrome/common/pref_names.h
+@@ -624,8 +624,8 @@
+ 
+ // A boolean pref set to true if browser frame surfaces should use native system
+ // materials instead of opaque fills.
+-inline constexpr char kHeliumNativeFrameMaterials[] =
+-    "helium.browser.native_frame_materials";
++inline constexpr char kPaaniNativeFrameMaterials[] =
++    "paani.browser.native_frame_materials";
+ 
+ // An enum (HeliumLayoutType) pref that controls the browser layout.
+ inline constexpr char kHeliumLayout[] = "helium.browser.layout";
+--- a/chrome/browser/ui/browser_ui_prefs.cc
++++ b/chrome/browser/ui/browser_ui_prefs.cc
+@@ -135,7 +135,7 @@
+ 
+   registry->RegisterBooleanPref(prefs::kHeliumRoundedFrame, true);
+ 
+-  registry->RegisterBooleanPref(prefs::kHeliumNativeFrameMaterials, false);
++  registry->RegisterBooleanPref(prefs::kPaaniNativeFrameMaterials, true);
+ 
+   registry->RegisterBooleanPref(prefs::kHeliumCenteredLocationBar, false);
+ 
+--- a/chrome/browser/extensions/api/settings_private/prefs_util.cc
++++ b/chrome/browser/extensions/api/settings_private/prefs_util.cc
+@@ -233,7 +233,7 @@
+       settings_api::PrefType::kBoolean;
+   (*s_allowlist)[::prefs::kHeliumZenModeTopChromePinned] =
+       settings_api::PrefType::kBoolean;
+-  (*s_allowlist)[::prefs::kHeliumNativeFrameMaterials] =
++  (*s_allowlist)[::prefs::kPaaniNativeFrameMaterials] =
+       settings_api::PrefType::kBoolean;
+ 
+   // Miscellaneous
+--- a/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
++++ b/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
+@@ -720,7 +720,8 @@
+       tab_groups::SavedTabGroupUtils::IsEnabledForProfile(profile));
+ 
+   html_source->AddBoolean("showNativeFrameMaterialsOption",
+-                          features::HeliumNativeFrameAvailable());
++                          features::PaaniNativeFrameAvailable() &&
++                              features::PaaniNativeFrameMaterialsSupported());
+   html_source->AddBoolean("showCtrlTabMru",
+                           base::FeatureList::IsEnabled(features::kCtrlTabMru));
+   html_source->AddBoolean(
+--- a/chrome/browser/resources/settings/appearance_page/appearance_page.html.ts
++++ b/chrome/browser/resources/settings/appearance_page/appearance_page.html.ts
+@@ -72,7 +72,7 @@
+     </settings-toggle-button>
+     <settings-toggle-button class="hr"
+         ?hidden="${!this.showNativeFrameMaterialsOption_}"
+-        pref-key="helium.browser.native_frame_materials"
++        pref-key="paani.browser.native_frame_materials"
+         label="$i18n{nativeFrameMaterials}"
+         sub-label="$i18n{nativeFrameMaterialsDescription}">
+     </settings-toggle-button>
+--- a/chrome/app/settings_strings.grdp
++++ b/chrome/app/settings_strings.grdp
+@@ -280,10 +280,10 @@
+       Show a rounded frame around web contents
+     </message>
+     <message name="IDS_SETTINGS_NATIVE_FRAME_MATERIALS" desc="Label for the toggle which enables or disables native system materials on the browser frame.">
+-      Use native frame materials (experimental)
++      Use native window materials
+     </message>
+     <message name="IDS_SETTINGS_NATIVE_FRAME_MATERIALS_DESCRIPTION" desc="Description for the toggle which enables native system materials on the browser frame.">
+-      Applies native materials to the browser frame surfaces. May cause UI clarity issues.
++      Draws the browser frame with the native Windows 11 backdrop. Web pages stay opaque. Falls back to a solid background when Windows reduces transparency or forces high contrast.
+     </message>
+     <message name="IDS_SETTINGS_LAYOUT" desc="Title of the settings section which controls how the browser UI is laid out.">
+       Layout
+--- a/chrome/browser/ui/views/frame/browser_widget.cc
++++ b/chrome/browser/ui/views/frame/browser_widget.cc
+@@ -212,9 +212,15 @@
+     }
+   }
+ 
+-  if (features::HeliumNativeFrameAvailable()) {
++#if BUILDFLAG(IS_MAC)
++  // macOS composites the browser frame with the native materials,
++  // which needs a translucent window.  Windows applies the
++  // backdrop to an opaque window through the DWM, so the window
++  // has to stay opaque there.
++  if (features::PaaniNativeFrameAvailable()) {
+     params.opacity = views::Widget::InitParams::WindowOpacity::kTranslucent;
+   }
++#endif  // BUILDFLAG(IS_MAC)
+ 
+   Init(std::move(params));
+ 
+--- a/chrome/browser/ui/views/frame/browser_frame_view_win.cc
++++ b/chrome/browser/ui/views/frame/browser_frame_view_win.cc
+@@ -28,6 +28,7 @@
+ #include "chrome/browser/ui/views/frame/minimize_button_metrics_win.h"
+ #include "chrome/browser/ui/views/frame/safe_invoke/safe_invoke.h"
+ #include "chrome/browser/ui/views/frame/tab_strip_region_view.h"
++#include "chrome/browser/ui/views/helium/native_frame_materials.h"
+ #include "chrome/browser/ui/views/tabs/new_tab_button.h"
+ #include "chrome/browser/ui/views/tabs/tab.h"
+ #include "chrome/browser/ui/views/tabs/tab_strip.h"
+@@ -624,6 +625,13 @@
+ void BrowserFrameViewWin::PaintTitlebar(gfx::Canvas* canvas) const {
+   TRACE_EVENT0("views.frame", "BrowserFrameViewWin::PaintTitlebar");
+ 
++  // The native backdrop is drawn by the DWM behind the client
++  // area, so the titlebar must not be painted opaquely on top
++  // of it.
++  if (helium::ShouldUseNativeFrameMaterials(GetBrowserView())) {
++    return;
++  }
++
+   // This is the pixel-accurate version of WindowTopY(). Scaling the DIP values
+   // here compounds precision error, which exposes unpainted client area. When
+   // restored it uses the system dsf instead of the per-monitor dsf to match
+--- a/chrome/browser/ui/views/helium/native_frame_materials.cc
++++ b/chrome/browser/ui/views/helium/native_frame_materials.cc
+@@ -11,14 +11,17 @@
+ #include "chrome/browser/ui/views/frame/browser_view.h"
+ #include "chrome/common/pref_names.h"
+ #include "components/prefs/pref_service.h"
++#if BUILDFLAG(IS_WIN)
++#include "ui/native_theme/os_settings_provider.h"
++#endif  // BUILDFLAG(IS_WIN)
+ #include "ui/views/view.h"
+ #include "ui/views/widget/widget.h"
+ 
+ namespace helium {
+ 
+ bool ShouldUseNativeFrameMaterials(const BrowserView* browser_view) {
+-#if BUILDFLAG(IS_MAC)
+-  if (!features::HeliumNativeFrameAvailable() || !browser_view) {
++#if BUILDFLAG(IS_MAC) || BUILDFLAG(IS_WIN)
++  if (!features::PaaniNativeFrameAvailable() || !browser_view) {
+     return false;
+   }
+ 
+@@ -27,9 +30,20 @@
+     return false;
+   }
+ 
++#if BUILDFLAG(IS_WIN)
++  // Windows asks for a solid background when the user turned
++  // transparency off or when the system is in a forced colors
++  // mode.
++  const ui::OsSettingsProvider& os_settings = ui::OsSettingsProvider::Get();
++  if (os_settings.PrefersReducedTransparency() ||
++      os_settings.ForcedColorsActive()) {
++    return false;
++  }
++#endif  // BUILDFLAG(IS_WIN)
++
+   const Profile* profile = browser_view->GetProfile();
+   return profile &&
+-         profile->GetPrefs()->GetBoolean(prefs::kHeliumNativeFrameMaterials);
++         profile->GetPrefs()->GetBoolean(prefs::kPaaniNativeFrameMaterials);
+ #else
+   return false;
+ #endif
+--- a/chrome/browser/ui/views/frame/browser_native_widget_mac.mm
++++ b/chrome/browser/ui/views/frame/browser_native_widget_mac.mm
+@@ -187,7 +187,7 @@
+   CHECK(browser_view);
+   pref_change_registrar_.Init(browser_view_->GetProfile()->GetPrefs());
+   pref_change_registrar_.Add(
+-      prefs::kHeliumNativeFrameMaterials,
++      prefs::kPaaniNativeFrameMaterials,
+       base::BindRepeating(
+           &BrowserNativeWidgetMac::OnNativeFrameMaterialsPrefChanged,
+           base::Unretained(this)));
+--- a/chrome/browser/helium_flag_choices.h
++++ b/chrome/browser/helium_flag_choices.h
+@@ -42,8 +42,8 @@
+ constexpr const char kHeliumSplitClientHelloCommandLine[] =
+     "helium-split-clienthello";
+ 
+-constexpr const char kHeliumNativeFrameMaterialsCommandLine[] =
+-    "helium-native-frame-materials";
++constexpr const char kPaaniNativeFrameMaterialsCommandLine[] =
++    "paani-native-frame-materials";
+ constexpr const char kHeliumHidePageActionsCommandLine[] =
+     "helium-hide-page-actions";
+ }  // namespace helium
+--- a/chrome/browser/helium_flag_entries.h
++++ b/chrome/browser/helium_flag_entries.h
+@@ -75,10 +75,10 @@
+      "prevent access to networks that require a proxy. Helium flag.",
+      kOsAll, SINGLE_VALUE_TYPE(switches::kNoProxyServer)},
+     // ui
+-    {helium::kHeliumNativeFrameMaterialsCommandLine, "Native frame materials",
++    {helium::kPaaniNativeFrameMaterialsCommandLine, "Native frame materials",
+      "Enables an option to apply native materials to the browser frame "
+-     "surfaces. May cause UI clarity issues. Helium flag.",
+-     kOsMac, FEATURE_VALUE_TYPE(features::kHeliumNativeFrameMaterials)},
++     "surfaces. May cause UI clarity issues. Paani flag.",
++     kOsMac | kOsWin, FEATURE_VALUE_TYPE(features::kPaaniNativeFrameMaterials)},
+     {helium::kHeliumHidePageActionsCommandLine, "Hide all page actions",
+      "Hides all page actions at the end of address bar. This includes: "
+      "bookmark star, page zoom, PWA install/open, local file access, and more. "

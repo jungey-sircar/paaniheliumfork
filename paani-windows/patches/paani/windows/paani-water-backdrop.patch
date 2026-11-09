@@ -1,0 +1,122 @@
+Paints the Paani chrome material where Windows will not.
+
+Helium leaves the frame unpainted under native frame materials so a native
+material can show through, and paani-mica-backdrop.patch asks the DWM for Mica.
+Neither is visible on Windows: Chromium composites an opaque surface, so the
+unpainted chrome shows black. Measured on a live window - forcing the backdrop
+to none, Acrylic and Mica from outside the process left identical titlebar
+pixels - while the attribute itself reads back DWMSBT_MAINWINDOW with S_OK.
+
+So Paani draws the material itself over the band of chrome above the web
+contents: the desktop wallpaper, blurred and tinted the way Windows tints it,
+cropped to the part of the desktop the window covers. Tabs already blend their
+colour towards transparent under native materials, so they sit on it as frosted
+glass instead of on black. When the desktop has no readable wallpaper the band is
+painted with the frame colour, which is the documented solid fallback.
+
+Web contents are a separate opaque surface and are never covered.
+--- a/chrome/browser/ui/views/frame/browser_frame_view_win.h
++++ b/chrome/browser/ui/views/frame/browser_frame_view_win.h
+@@ -107,6 +107,12 @@
+   // show whatever the compositor leaves behind.
+   void UpdateNativeFrameBackdrop();
+ 
++  // Paints the desktop material across the band of chrome above the web
++  // contents and reports whether it did. Windows only draws its own
++  // material where an app leaves pixels transparent, and Chromium
++  // composites an opaque surface, so the material is drawn here instead.
++  bool PaintPaaniChromeBackdrop(gfx::Canvas* canvas);
++
+   // The backdrop last handed to the DWM, so that the attribute is only
+   // set when it actually changes.
+   std::optional<DWORD> applied_system_backdrop_;
+--- a/chrome/browser/ui/views/frame/browser_frame_view_win.cc
++++ b/chrome/browser/ui/views/frame/browser_frame_view_win.cc
+@@ -26,6 +26,8 @@
+ #include "chrome/browser/ui/views/frame/browser_caption_button_container_win.h"
+ #include "chrome/browser/ui/views/frame/browser_view.h"
+ #include "chrome/browser/ui/views/frame/minimize_button_metrics_win.h"
++#include "chrome/browser/ui/views/frame/paani_chrome_backdrop.h"
++#include "chrome/browser/ui/views/frame/top_container_view.h"
+ #include "chrome/browser/ui/views/frame/safe_invoke/safe_invoke.h"
+ #include "chrome/browser/ui/views/frame/tab_strip_region_view.h"
+ #include "chrome/browser/ui/views/helium/native_frame_materials.h"
+@@ -473,6 +475,9 @@
+ void BrowserFrameViewWin::OnPaint(gfx::Canvas* canvas) {
+   TRACE_EVENT0("views.frame", "BrowserFrameViewWin::OnPaint");
+   UpdateNativeFrameBackdrop();
++  if (PaintPaaniChromeBackdrop(canvas)) {
++    return;
++  }
+   PaintTitlebar(canvas);
+ }
+ 
+@@ -513,6 +518,34 @@
+                                          &backdrop, sizeof(backdrop)))) {
+     applied_system_backdrop_ = backdrop;
+   }
++}
++
++bool BrowserFrameViewWin::PaintPaaniChromeBackdrop(gfx::Canvas* canvas) {
++  if (!helium::ShouldUseNativeFrameMaterials(GetBrowserView())) {
++    return false;
++  }
++
++  // Under native materials every view in this band declines to paint a
++  // background of its own, so one draw behind all of them is the whole
++  // translucent chrome: titlebar, tab strip, toolbar and bookmark bar.
++  // The tabs themselves blend their tab colour towards transparent, so
++  // they read as frosted over this rather than sitting on black.
++  int bottom = TitlebarHeight(false);
++  if (views::View* top_container = GetBrowserView()->top_container()) {
++    gfx::Point container_bottom =
++        top_container->GetLocalBounds().bottom_right();
++    views::View::ConvertPointToTarget(top_container, this,
++                                     &container_bottom);
++    bottom = std::max(bottom, container_bottom.y());
++  }
++
++  // A desktop with no readable wallpaper is answered with a solid frame,
++  // which is what the fallback in the paint helper already does.
++  paani::PaintChromeBackdrop(canvas, this,
++                               gfx::Rect(0, 0, width(), bottom),
++                               GetFrameColor(BrowserFrameActiveState::
++                                             kUseCurrent));
++  return true;
+ }
+ 
+ int BrowserFrameViewWin::FrameBorderThickness() const {
+--- a/chrome/browser/ui/views/frame/BUILD.gn
++++ b/chrome/browser/ui/views/frame/BUILD.gn
+@@ -1430,6 +1430,23 @@
+     ]
+   }
+ 
++  source_set("paani_chrome_backdrop") {
++    public = [ "paani_chrome_backdrop.h" ]
++    sources = [ "paani_chrome_backdrop.cc" ]
++    public_deps = [
++      "//base",
++      "//ui/gfx",
++      "//ui/gfx/geometry",
++      "//ui/views",
++    ]
++
++    deps = [
++      "//cc/paint",
++      "//skia",
++      "//ui/display",
++    ]
++  }
++
+   source_set("browser_frame_view_win_impl") {
+     sources = [ "browser_frame_view_win.cc" ]
+     public_deps = [
+@@ -1439,6 +1456,7 @@
+ 
+     deps = [
+       ":browser_caption_button_container_win",
++      ":paani_chrome_backdrop",
+       ":browser_view_header",
+       ":frame",
+       ":minimize_button_metrics_win",
